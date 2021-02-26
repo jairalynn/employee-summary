@@ -9,158 +9,99 @@ const OUTPUT_DIR = path.resolve(__dirname, "output");
 const outputPath = path.join(OUTPUT_DIR, "team.html");
 
 const render = require("./lib/htmlRenderer");
-const { validate, memberExpression } = require("@babel/types");
+const Choices = require("inquirer/lib/objects/choices");
 
 const employeeList = [];
-const html = "";
 
-const validateId = async (data) => {
-    if (html.includes(data) === true) {
-        return 'That ID number is taken. Please enter another one.';
-    }
-    return true;
-};
-
-    function addEmployee(){
+function userQuestions() {
     inquirer.prompt([
         {
             type: 'list',
             name: 'role',
             message: 'What kind of employee would you like to add?',
-            choices: ["Engineer", "Intern", "None"],
+            choices: ["Engineer", "Intern", "Manager"],
         },
-    ]).then(choice => {
-        switch (choice.role) {
-            case "Engineer":
-                inquirer.prompt([
-                    {
-                        type: "input",
-                        name: "name",
-                        message: "What is the engineer's name?",
-                    },
-                    {
-                        type: "input",
-                        name: "id",
-                        message: "What is the engineer's ID?",
-                        validate: validateId
-                    },
-                    {
-                        type: "input",
-                        name: "email",
-                        message: "What is your engineer's Email",
-                    },
-                    {
-                        type: "input",
-                        name: "github",
-                        message: "What is the engineer's gitHub?",
-                    },
-                    {
-                        type: "list",
-                        name: "addAnother",
-                        message: "which type of team member will you add?",
-                        choices: ["Engineer", "Intern", "None"],
-                    }
-    ]).then(data => {
-    const engineer = new Engineer(data.name, data.id, data.email, data.github);
-    employeeList.push(engineer);
-    html.push(data.id);
-    if (data.addAnother === true) {
-        addEmployee();
-    } else {
-    fs.writeFile(outputPath, render(employeeList), (err) => {
-        if (err) throw err;
-        });
-            return
-        }
-    })
-    break;
-    case "Intern":
-        inquirer.prompt([
-                        {
-                            type: "input",
-                            name: "name",
-                            message: "What is the intern's name?",
-                        },
-                        {
-                            type: "input",
-                            name: "id",
-                            message: "What is the intern's ID?", 
-                            validate: validateId, 
-                        },
-                        {
-                            type: "input",
-                            name: "email",
-                            message: "What is your intern's Email",
-                        },
-                        {
-                            type: "input",
-                            name: "school",
-                            message: "What is the intern's school name?",
-                        },
-                        {
-                            type: "list",
-                            name: "addAnother",
-                            message: "which type of team member will you add?",
-                            choices: ["Engineer", "Intern", "None"],
-                        }
-            
-                    ]).then(data => {
-                        const intern = new Intern(data.name, data.id, data.email, data.school);
-                        employeeList.push(intern);
-                        html.push(data.id);
-                        if (data.addAnother === true) {
-                            addEmployee();
-                        } else {
-                            fs.writeFile(outputPath, render(employeeList), (err) => {
-                                if (err) throw err;
-                            }
-                            ); 
-                            return;
-                        }
-                    }) break;
-
-                        // default:
-                        // //     break;
-                    }
-                })
-        }
-
-        inquirer.prompt([
-            {
-                type: "input",
-                name: "name",
-                message: "What is the manager's name?",
-            },
-            {
-                type: "input",
-                name: "id",
-                message: "What is the manager's ID?",
-            },
-            {
-                type: "input",
-                name: "email",
-                message: "What is your manager's Email",
-            },
-            
-            {
-                type: "number",
-                name: "officeNumber",
-                message: "What is your office number?",
-            },
-            {
-                type: "list",
-                name: "role",
-                message: "What type of employee are you?",
-                choices: ["Engineer", "Intern", "None"]
-            }
-        ]).then(data => {
-            const manager = new Manager(data.name, data.id, data.email, data.officeNumber);
+        {
+            type: "input",
+            name: "name",
+            message: "What is the your name?",
+        },
+        {
+            type: "input",
+            name: "id",
+            message: "What is the your ID?",
+        },
+        {
+            type: "input",
+            name: "email",
+            message: "What is your email",
+        },
+        {
+            type: "input",
+            name: "departmentNumber",
+            message: "What is your department number?",
+            when: (answers) => answers.role === "Manager",
+        },
+        {
+            type: "input",
+            name: "github",
+            message: "What is your Github username?",
+            when: (answers) => answers.role === "Engineer",
+        },
+        {
+            type: "input",
+            name: "school",
+            message: "What school do you go to?",
+            when: (answers) => answers.role === "Intern",
+        },
+        {
+            type: "list",
+            name: "next",
+            message: "Would you like to add another employee?",
+            choices: ["Yes", "No"],
+        },
+    ]).then(function (answers) {
+        if (answers.role === "Manager") {
+            const manager = new Manager(
+                answers.name,
+                answers.id,
+                answers.email,
+                answers.departmentNumber
+            );
             employeeList.push(manager);
-            html.push(data.id);
-            addEmployee();
-        })
-        
-   
+        }
+        if (answers.role === "Intern") {
+            const intern = new Intern(
+                answers.name,
+                answers.id,
+                answers.email,
+                answers.school
+            );
+            employeeList.push(intern);
+        }
+        if (answers.role === "Engineer") {
+            const engineer = new Engineer(
+                answers.name,
+                answers.id,
+                answers.email,
+                answers.github,
+            );
+            employeeList.push(engineer);
+        }
+        if (answers.next === "Yes") {
+            userQuestions();
+        } else {
+            fs.writeFile(outputPath, render(employeeList), (err) => {
+                if (err) {
+                    return console.log(err);
+                }
+                console.log("Success!!!");
+            });
+        }
+    });
+}
+
+userQuestions();
 // Write code to use inquirer to gather information about the development team members,
 // and to create objects for each team member (using the correct classes as blueprints!)
 
